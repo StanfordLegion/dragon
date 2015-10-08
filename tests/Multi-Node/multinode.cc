@@ -3,6 +3,12 @@
  *
  *  Created on: Aug 13, 2015
  *      Author: payne
+ *
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
+ *
+ * This file is part of the Dragon project. See the LICENSE.txt file at the
+ * top-level directory of this distribution.
  */
 
 
@@ -14,6 +20,7 @@
 #include <LPWrapper.h>
 #include <IndexKernelLauncher.h>
 #include <BetterMapper.h>
+#include "IndexAddOp.h"
 
 using namespace Dragon;
 
@@ -21,6 +28,7 @@ enum Task_IDs
 {
 	TOP_LEVEL_TASK_ID
 };
+
 
 
 
@@ -41,7 +49,7 @@ public:
 		IndexKernelArgs args;
 		LPWrapper dummy_part;
 
-		dummy_part.slicedPart(ctx,runtime,_dummy,":","%1","%1");
+		dummy_part.slicedPart(ctx,runtime,_dummy,":",":","%1");
 
 		args.add_arg(dummy_part,0,READ_ONLY,EXCLUSIVE);
 
@@ -99,15 +107,22 @@ void top_level_task(const Task *task,
 	helper.set(a.lr,0,a_tmp,1000);
 	helper.set(b.lr,0,b_tmp,1000);
 
+	IndexAddOp add(10,10,10);
+
 	Print3D check(10,10,10);
 
+	auto add_kernel = genIndexKernel(add,ctx,runtime,a,b,c);
+	runtime->execute_index_space(ctx,add_kernel);
 
-	auto check_add = genIndexKernel(check,ctx,runtime,a);
+	auto check_add = genIndexKernel(check,ctx,runtime,c);
 
-	runtime->execute_index_space(ctx,check_add);
+//	runtime->execute_index_space(ctx,check_add).wait_all_results();
+
+
 
 
 }
+
 
 
 static void update_mappers(Machine machine, HighLevelRuntime *rt,
@@ -150,14 +165,14 @@ int main(int argc, char **argv)
 
 
 
-
+  register_index_add_op();
 
   TaskHelper::register_hybrid_variants<LegionHelper::Setter<int> >();
   TaskHelper::register_hybrid_variants<LegionHelper::Setter<double> >();
 
 
 
-  HighLevelRuntime::set_registration_callback(update_mappers);
+//  HighLevelRuntime::set_registration_callback(update_mappers);
 
 
 

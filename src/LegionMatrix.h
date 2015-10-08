@@ -3,6 +3,12 @@
  *
  *  Created on: Jul 9, 2015
  *      Author: payne
+ *
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
+ *
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 #include "LRWrapper.h"
 
@@ -91,7 +97,7 @@ namespace Dragon
 		LegionMatrix(const LRWrapper& wrapper,const PhysicalRegion &region,const int _FID) : fid(_FID), acc(region,_FID)
 		{
 
-//			printf("Creating %s of field id %i with %i dims\n",typeid(decltype(*this)).name(),_FID,wrapper.ndims);
+			printf("Creating %s of field id %i with %i dims\n",typeid(decltype(*this)).name(),_FID,wrapper.ndims);
 			memcpy(dims,wrapper.dims,wrapper.ndims*sizeof(size_t));
 		}
 
@@ -148,6 +154,7 @@ namespace Dragon
 
 
 
+
 		LegionMatrix(const LRWrapper& wrapper,lrAccessor<T> _acc) : fid(0),acc(_acc)
 		{
 			memcpy(dims,wrapper.dims,wrapper.ndims*sizeof(size_t));
@@ -187,6 +194,7 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<float>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<float>().can_convert<AccessorType::SOA<0>>());
 		accessor = region.get_field_accessor(FID).typeify<float>().convert<AccessorType::SOA<sizeof(float)>>();
 		//first_elem = IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
 		first_elem = ptr_t(0);
@@ -195,6 +203,8 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<int>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<int>().can_convert<AccessorType::SOA<0>>());
+
 		accessor = region.get_field_accessor(FID).typeify<int>().convert<AccessorType::SOA<sizeof(int)>>();
 
 		first_elem = ptr_t(0);//IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
@@ -203,6 +213,8 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<double>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<double>().can_convert<AccessorType::SOA<0>>());
+
 		accessor = region.get_field_accessor(FID).typeify<double>().convert<AccessorType::SOA<sizeof(double)>>();
 		//first_elem = IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
 		first_elem = ptr_t(0);
@@ -211,6 +223,8 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<char>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<char>().can_convert<AccessorType::SOA<0>>());
+
 		accessor = region.get_field_accessor(FID).typeify<char>().convert<AccessorType::SOA<sizeof(char)>>();
 		//first_elem = IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
 		first_elem = ptr_t(0);
@@ -219,6 +233,8 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<LRWrapper>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<LRWrapper>().can_convert<AccessorType::SOA<0>>());
+
 		accessor = region.get_field_accessor(FID).typeify<LRWrapper>().convert<AccessorType::SOA<sizeof(LRWrapper)>>();
 		//first_elem = IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
 		first_elem = ptr_t(0);
@@ -227,6 +243,7 @@ namespace Dragon
 	template<>__inline__
 	lrAccessor<bool>::lrAccessor(const PhysicalRegion &region, const int FID)
 	{
+		assert(region.get_field_accessor(FID).typeify<bool>().can_convert<AccessorType::SOA<0>>());
 		accessor = region.get_field_accessor(FID).typeify<bool>().convert<AccessorType::SOA<sizeof(bool)>>();
 		//first_elem = IndexIterator(region.get_logical_region()).next();//-region.get_logical_region().get_index_space().get_valid_mask().first_element;
 		first_elem = ptr_t(0);

@@ -3,6 +3,12 @@
  *
  *  Created on: Jul 13, 2015
  *      Author: payne
+ *
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
+ *
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 
 #ifndef INDEXKERNELLAUNCHER_H_
@@ -17,6 +23,7 @@ namespace Dragon
 
 
 #ifdef USE_CUDA_FKOP
+// IndexKernelOp cuda kernel with no return value
 template<class O,class ... Acc> __global__
 void IndexKernelGPUOp(int iStart,int iEnd,O op,Acc... accessors)
 {
@@ -32,11 +39,12 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,Acc... accessors)
 	}
 }
 
+// IndexKernelOp cuda kernel with return value
 template<class O,class rA,class ... Acc> __global__
 void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... accessors)
 {
 	int idx = threadIdx.x+blockDim.x*blockIdx.x;
-//	printf("Field Kernel GPU write op with idx %i starting at %i to %i\n",idx,iStart,iEnd);
+	printf("Field Kernel GPU write op with idx %i starting at %i to %i\n",idx,iStart,iEnd);
 
 
 	for(int i=iStart+idx;i<=iEnd;i+=blockDim.x*gridDim.x)
@@ -44,6 +52,8 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 //		printf("Processing Element %i on GPU\n",i);
 
 			result(i) = op.evaluate(i,accessors...);
+
+
 
 	}
 }
@@ -73,9 +83,17 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 				       const std::vector<PhysicalRegion> &regions, HighLevelRuntime *rt)
 			{
 
+
+
+
+
 				std::vector<Domain> bounds;
 
-//				rt->get_index_space_domains(ctx,task->regions[0].region.get_index_space(),bounds);
+				int idx = task->index_point.point_data[0];
+				rt->get_index_space_domains(ctx,task->regions[0].region.get_index_space(),bounds);
+//				bounds.push_back(rt->get_index_space_domain(ctx,task->regions[0].region.get_index_space()));
+
+				assert(bounds.size() > 0);
 //				if(loop_domain.rect_data[0] == 0 && loop_domain.rect_data[3] == 0)
 //				{
 
@@ -89,8 +107,30 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 //						bounds.rect_data[i+3] = loop_domain.rect_data[i+3] + n*task->index_point.point_data[i];
 //					}
 
-//				for(auto dom : bounds)
-//					printf("Index Op bounds go from %i to %i\n",dom.get_index_space().get_valid_mask().first_enabled_elmt,dom.get_index_space().get_valid_mask().last_enabled_elmt);
+				char hostname[32];
+				gethostname(hostname,32);
+				for(auto& dom : bounds)
+				{
+
+					 IndexIterator iter(rt,ctx,task->regions[0].region);
+
+					 unsigned total = 0;
+					 unsigned first = iter.next();
+					 unsigned last = first;
+					 while(iter.has_next())
+					 {
+						 total++;
+						 last = iter.next();
+					 }
+
+					 dom.rect_data[0] = first;
+					 dom.rect_data[3] = last;
+					printf("Index Op bounds task %i on node %s go from %i to %i\n",idx,hostname,first,last);
+				}
+
+				const char* lr_name;
+				rt->retrieve_name(task->regions[0].parent,lr_name);
+				printf("Region requirement on node %s with lr %s  proc kind %#010x\n",hostname,lr_name,task->target_proc.id);
 				// Ensure that the function signatures are the same for the template
 				// and the actual call
 				if(!find_method<O,decltype(&O::evaluate_s)>::value)
@@ -109,7 +149,7 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 				else
 					iLevel = 1;
 
-//				evaluate(imp,bounds,task,ctx,rt,iLevel,fids,regions,IndexTaskOp<O>::tList_a.aList);
+				evaluate(imp,bounds,task,ctx,rt,iLevel,fids,regions,IndexTaskOp<O>::tList_a.aList);
 			}
 
 			template<class gpu_impl,class rA,template<class>class rAcc,typename... rBcc_cl>
@@ -183,13 +223,14 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 
 		    	for(auto dom : bounds)
 		    	{
-				int iStart = loop_domain.rect_data[0] + n*dom.get_index_space().get_valid_mask().first_enabled_elmt;
-				int iEnd = loop_domain.rect_data[1] + n*dom.get_index_space().get_valid_mask().last_enabled_elmt;
+				int iStart = loop_domain.rect_data[0] + n*dom.rect_data[0];
+				int iEnd = loop_domain.rect_data[1] + n*dom.rect_data[3];
 		  		int cudaBlockSize = 256;
 		  		int cudaGridSize = (iEnd-iStart + cudaBlockSize )/cudaBlockSize;
 
 //		  		printf("Executing Index Kernel on GPU going from %i to %i\n",iStart,iEnd);
 //		  		cudaStreamSynchronize(0);
+		  		if(iStart >= 0 && iEnd >= 0)
 		  		((IndexKernelGPUOp<<<cudaBlockSize,cudaGridSize>>>(iStart,iEnd,op_info.op,accessors...)));
 //		  		cudaStreamSynchronize(0);
 		    	}
@@ -282,6 +323,7 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 		    }
 
 	};
+
 
 
 
@@ -480,7 +522,7 @@ void IndexKernelGPUOp(int iStart,int iEnd,O op,lrAccessor<rA> result,Acc... acce
 			int i2 = 0;
 			for(auto it : arg_req_map)
 			{
-				printf("Arg %i with fid %i using req %i\n",i2,oargs.args[i2].fid,std::get<0>(it));
+				printf("Arg %i with fid %u using req %u\n",i2,t_args[i2].fid,std::get<0>(it));
 
 				assert(lpmode_map[std::get<0>(it)] == it.second);
 				i2++;

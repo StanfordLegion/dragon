@@ -43,9 +43,9 @@ namespace Dragon
 			LPWrapper c;
 
 
-			a.slicedPart(ctx,runtime,_a,":",":",":");
-			b.slicedPart(ctx,runtime,_b,":",":",":");
-			c.slicedPart(ctx,runtime,_c,":",":",":");
+			a.slicedPart(ctx,runtime,_a,":",":","%1");
+			b.slicedPart(ctx,runtime,_b,":",":","%1");
+			c.slicedPart(ctx,runtime,_c,":",":","%1");
 
 
 			args.add_arg(a,0,READ_ONLY,EXCLUSIVE);
@@ -65,6 +65,7 @@ namespace Dragon
 		int evaluate(int idx,LegionMatrix<int> a,
 	                 LegionMatrix<int> b)
 		{
+//			idx = 0;
 			int i = idx%nx;
 			int j = (idx/nx)%ny;
 			int k = (idx/(nx*ny));

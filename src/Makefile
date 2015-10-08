@@ -1,23 +1,16 @@
-# Copyright 2014 Stanford University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Copyright (c) 2014-2015 Los Alamos National Security, LLC
+#                         All rights reserved.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This file is part of the Dragon project. See the LICENSE.txt file at the
+# top-level directory of this distribution.
 #
 
 #CUDA ?=/usr/local/cuda-7.0
 ifndef LG_RT_DIR
 $(error LG_RT_DIR variable is not defined, aborting build)
 endif
-
+NO_BUILD_RULES=1
 #USE_CUDA=1
 #Flags for directing the runtime makefile what to include
 #DEBUG           ?= 1		# Include debugging symbols
@@ -75,7 +68,7 @@ ifndef GCC
 GCC	:= g++
 endif
 ifndef NVCC
-NVCC	:= $(CUDA)/bin/nvcc
+NVCC	:= nvcc
 endif
 SSH	:= ssh
 SCP	:= scp
@@ -105,7 +98,7 @@ CC_FLAGS+=-fPIC
 
 $(OUTFILE) : $(ALL_OBJS)
 	@echo "---> Linking objects into one binary: $(OUTFILE)"
-	$(NVCC)  --lib $(ALL_OBJS) -o $(OUTFILE) 
+	$(NVCC) -g -G  --lib $(ALL_OBJS) -o $(OUTFILE) 
 
 
 $(GEN_OBJS) : %.o : %.cc

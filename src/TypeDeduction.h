@@ -3,6 +3,12 @@
  *
  *  Created on: Jul 7, 2015
  *      Author: payne
+ *
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
+ *
+ * This file is part of the Dragon project. See the LICENSE.txt file at the
+ * top-level directory of this distribution.
  */
 
 #ifndef TYPEDEDUCTION_H_
@@ -30,6 +36,8 @@ using namespace LegionRuntime::Arrays;
 
 namespace Dragon
 {
+
+	// ClassList contains a list of types
 	template<class... cB>
 	class ClassList
 	{
@@ -40,20 +48,25 @@ namespace Dragon
 	{
 		return ClassList<cB...>();
 	}
+
+	// Contains a class list as an object, possibly unnecessary
 	template<typename... args>
 	class typeList
 	{
 	public:
 		ClassList<args...> aList;
-	//	typedef res rT;
 	};
 
+
+	// This class allows us to catalog a list of templated accessor types and the type they are templated on.
+	// This is the basic version so that we can do specialization on other versions
 	template<class... args>
 	class Wrapper2
 	{
 		static const int NARGS = 0;
 	};
 
+	// Specialized top-level version for wrapping more than one argument
 	template<template<class>class Accessor,class Arg1, class... args>
 	class Wrapper2<Accessor<Arg1>,args...>
 	{
@@ -63,6 +76,7 @@ namespace Dragon
 
 	};
 
+	// Specialized version for wrapping a single argument
 	template<template<class>class Accessor,class Arg1>
 	class Wrapper2<Accessor<Arg1>>
 	{
@@ -71,6 +85,7 @@ namespace Dragon
 		static const int NARGS = 1;
 	};
 
+	// Specialized mid-level version for wrapping multiple arguments.
 	template<template<class>class Accessor,class Arg1, class... tListTail,class... args>
 	class Wrapper2<typeList<tListTail...>,Accessor<Arg1>,args...>
 	{
@@ -80,6 +95,7 @@ namespace Dragon
 
 	};
 
+	// Specialized bottom-level version for wrapping multiple arguments.
 	template<template<class>class Accessor,class Arg1, class... tListTail>
 	class Wrapper2<typeList<tListTail...>,Accessor<Arg1>>
 	{
@@ -90,12 +106,15 @@ namespace Dragon
 	};
 
 
+	// Default version of a class to extract the arguments and return value from a function pointer.
 	template <class T>
 	class ArgExctractor
 	{
 	public:
 		typedef typename ArgExctractor<T>::tList tList;
 	};
+
+	// Specialized ArgExtractor for functions with only accessors as arguments
 	template<class rVal,class... args>
 	class ArgExctractor<rVal(*)(args...)>
 	{
@@ -106,6 +125,8 @@ namespace Dragon
 		static const bool CPU_BASE_LEAF = true;
 
 	};
+
+	// Specialized ArgExtractor for functions with an integer input and accessors as arguments
 	template<class rVal,class... args>
 	class ArgExctractor<rVal(*)(int,args...)>
 	{
@@ -117,6 +138,7 @@ namespace Dragon
 
 	};
 
+	// Specialized ArgExtractor for functions with full context and task information as arguments
 	template<class rVal,class... args>
 	class ArgExctractor<rVal(*)(const Task*,Context,HighLevelRuntime*,args...)>
 	{
@@ -137,6 +159,7 @@ namespace Dragon
 
 	};
 
+	// Class for extracting the return type from a function pointer type
 	template<class rVal,class... args>
 	class RetExctractor<rVal(*)(args...)>
 	{
@@ -146,6 +169,7 @@ namespace Dragon
 
 
 
+	// Class to check functor class for a "start" member function
 	template< typename T>
 	struct has_on_start_method
 	{
@@ -196,6 +220,7 @@ namespace Dragon
 	    }
 	};
 
+	// Class to check functor class for a "finish" member function
 	template< typename T>
 	struct has_on_finish_method
 	{
@@ -246,6 +271,8 @@ namespace Dragon
 	    }
 	};
 
+
+	// Class to check for an "evaluate" member function matching some required sig
 	template< typename T,class B>
 	struct find_method
 	{
@@ -305,64 +332,66 @@ namespace Dragon
 	};
 
 
-	template< typename T,class B>
-	struct has_gpu_impl
-	{
+//	// Class to check for a "gpu_impl" member function.
+//	template< typename T,class B>
+//	struct has_gpu_impl
+//	{
+//
+//	};
+//
+//	template< typename T,class rVal,class ...Args>
+//	struct has_gpu_impl<T,rVal(*)(Args...)>
+//	{
+//	    /* SFINAE foo-has-correct-sig :) */
+//	    template<typename A>
+//	    static std::true_type test(rVal (A::*)(Args...)) {
+//	        return std::true_type();
+//	    }
+//
+//	    /* SFINAE foo-exists :) */
+//	    template<typename A>
+//	    static decltype(test(&A::evaluate))
+//	    test(decltype(&A::evaluate),void*) {
+//	        /* foo exists. What about sig? */
+//	        typedef decltype(test(&A::foo)) return_type;
+//	        return return_type();
+//	    }
+//
+//	    /* SFINAE game over :( */
+//	    template<typename A>
+//	    static std::false_type test(...) {
+//	        return std::false_type();
+//	    }
+//
+//	    /* This will be either `std::true_type` or `std::false_type` */
+//	    typedef decltype(test<T>(0,0)) type;
+//
+//	    static const bool value = type::value; /* Which is it? */
+//
+//	    /*  `eval(T const &,std::true_type)`
+//	        delegates to `T::foo()` when `type` == `std::true_type`
+//	    */
+//	    static rVal eval(T  & t, std::true_type,Args... ar) {
+//	        return t.evaluate(ar...);
+//	    }
+//	    /* `eval(...)` is a no-op for otherwise unmatched arguments */
+//	    template<class... Args2>
+//	    static rVal eval(Args2... ar){
+//	        // This output for demo purposes. Delete
+//	        std::cout << "T::foo() not called" << std::endl;
+//	        return rVal();
+//	    }
+//
+//	    /* `eval(T const & t)` delegates to :-
+//	        - `eval(t,type()` when `type` == `std::true_type`
+//	        - `eval(...)` otherwise
+//	    */
+//	    static rVal eval(T  & t,Args... ar) {
+//	        return eval(t,type(),ar...);
+//	    }
+//	};
 
-	};
-
-	template< typename T,class rVal,class ...Args>
-	struct has_gpu_impl<T,rVal(*)(Args...)>
-	{
-	    /* SFINAE foo-has-correct-sig :) */
-	    template<typename A>
-	    static std::true_type test(rVal (A::*)(Args...)) {
-	        return std::true_type();
-	    }
-
-	    /* SFINAE foo-exists :) */
-	    template<typename A>
-	    static decltype(test(&A::evaluate))
-	    test(decltype(&A::evaluate),void*) {
-	        /* foo exists. What about sig? */
-	        typedef decltype(test(&A::foo)) return_type;
-	        return return_type();
-	    }
-
-	    /* SFINAE game over :( */
-	    template<typename A>
-	    static std::false_type test(...) {
-	        return std::false_type();
-	    }
-
-	    /* This will be either `std::true_type` or `std::false_type` */
-	    typedef decltype(test<T>(0,0)) type;
-
-	    static const bool value = type::value; /* Which is it? */
-
-	    /*  `eval(T const &,std::true_type)`
-	        delegates to `T::foo()` when `type` == `std::true_type`
-	    */
-	    static rVal eval(T  & t, std::true_type,Args... ar) {
-	        return t.evaluate(ar...);
-	    }
-	    /* `eval(...)` is a no-op for otherwise unmatched arguments */
-	    template<class... Args2>
-	    static rVal eval(Args2... ar){
-	        // This output for demo purposes. Delete
-	        std::cout << "T::foo() not called" << std::endl;
-	        return rVal();
-	    }
-
-	    /* `eval(T const & t)` delegates to :-
-	        - `eval(t,type()` when `type` == `std::true_type`
-	        - `eval(...)` otherwise
-	    */
-	    static rVal eval(T  & t,Args... ar) {
-	        return eval(t,type(),ar...);
-	    }
-	};
-
+	// Dummy function for generating specific function sigs.
 	template<class rT,class ...Args>
 	rT DummyFoo(Args... args){return rT();};
 

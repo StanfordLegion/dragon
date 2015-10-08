@@ -3,26 +3,16 @@
  *
  *  Created on: Jul 7, 2015
  *      Author: payne
+ *
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
+ *
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 
 #ifndef LPWRAPPER_H_
 #define LPWRAPPER_H_
-
-//#include <legion.h>
-//#include <typeinfo>
-//#ifdef USE_CUDA_FKOP
-//#include <cuda.h>
-//#include <cuda_runtime.h>
-//#else
-//#define __host__
-//#define __device__
-//#endif
-//#include "legion_tasks.h"
-//#include <sstream>
-//#include <unistd.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-////#include "LRWrapper.h"
 
 #include "wrapper_defines.h"
 

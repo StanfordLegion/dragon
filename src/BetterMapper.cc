@@ -1,16 +1,11 @@
-/* Copyright 2015 Stanford University, NVIDIA Corporation
+/*
+ * Author: Joshua Payne
+ * Adapted from default_mapper.cc from the legion runtime.
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 
 #include <legion.h>
@@ -64,7 +59,7 @@ namespace LegionRuntime {
     //--------------------------------------------------------------------------
     BetterMapper::BetterMapper(Machine m, HighLevelRuntime *rt,
                                  Processor local) 
-      : DefaultMapper(m,rt,local), local_proc(local),
+      : ShimMapper(m,rt,local), local_proc(local),
         local_kind(local.kind()), machine(m),
         max_steals_per_theft(STATIC_MAX_PERMITTED_STEALS),
         max_steal_count(STATIC_MAX_STEAL_COUNT),
@@ -147,8 +142,8 @@ namespace LegionRuntime {
 
     //--------------------------------------------------------------------------
     BetterMapper::BetterMapper(const BetterMapper &rhs)
-      : DefaultMapper(rhs), local_proc(Processor::NO_PROC),
-        local_kind(Processor::LOC_PROC), machine(NULL),
+      : ShimMapper(rhs), local_proc(Processor::NO_PROC),
+        local_kind(Processor::LOC_PROC), machine(Machine::get_machine()),
         machine_interface(MappingUtilities::MachineQueryInterface(Machine::get_machine()))
     //--------------------------------------------------------------------------
     {
@@ -192,7 +187,7 @@ namespace LegionRuntime {
             	}
 
             	task->target_proc = best_proc.first;
-            	sched_map[best_proc.first] += profiler.get_task_time(task,task->target_proc.kind());
+            	sched_map[best_proc.first] += 1.0;
 
 
 
@@ -466,11 +461,13 @@ namespace LegionRuntime {
 //      std::vector<Processor> procs(all_procs.begin(),all_procs.end());
 
       static int inode2=0;
+      inode2 = inode2%system_mems.size();
+
       std::vector<Memory> system_mems_v(system_mems.begin(),system_mems.end());
       std::set<Processor> local_procs;
-      machine.get_shared_processors(all_sysmem[local_proc],local_procs);
+//      machine.get_shared_processors(system_mems_v[inode2],local_procs);
+      local_procs = all_procs;
       machine_interface.filter_processors(machine,Processor::LOC_PROC,local_procs);
-      inode2 = inode2%system_mems_v.size();
 
       std::vector<Processor> avail_cpus(local_procs.begin(),local_procs.end());
 
@@ -596,6 +593,8 @@ namespace LegionRuntime {
 //      assert(zc_mem.exists());
       Memory fb_mem = machine_interface.find_memory_kind(task->target_proc,
                                                          Memory::GPU_FB_MEM);
+
+      Memory global = machine_interface.find_global_memory();
 //      assert(zc_mem.exists());
 
       for (unsigned idx = 0; idx < task->regions.size(); idx++)
@@ -612,10 +611,16 @@ namespace LegionRuntime {
 //          else
           {
 
+//              if(task->target_proc.kind() == Processor::TOC_PROC)
+//              	task->regions[idx].target_ranking.push_back(zc_mem);
+//              else
             machine_interface.find_memory_stack(task->target_proc,
                                                 task->regions[idx].target_ranking,
 						(task->target_proc.kind()
                                                         == Processor::LOC_PROC));
+
+
+
 //        	printf("task %s has memory stack:",task->variants->name);
 //
 //            for(auto mem : task->regions[idx].target_ranking)
@@ -629,9 +634,16 @@ namespace LegionRuntime {
         }
         else
         {
+
+//            if(task->target_proc.kind() == Processor::TOC_PROC)
+//            	task->regions[idx].target_ranking.push_back(zc_mem);
+//            else
+//            {
           assert(task->regions[idx].current_instances.size() == 1);
           Memory target = (task->regions[idx].current_instances.begin())->first;
           task->regions[idx].target_ranking.push_back(target);
+//            }
+
 
 
 
@@ -650,6 +662,14 @@ namespace LegionRuntime {
           task->regions[idx].blocking_factor = 
             task->regions[idx].max_blocking_factor;
       }
+
+
+      printf("task %s targeting memories: ",task->variants->name);
+      for(auto region : task->regions)
+    	  for(auto mem : region.target_ranking)
+    		  printf("%i, ",mem.kind());
+      printf("\n");
+
       return true;
     }
 
@@ -725,7 +745,7 @@ namespace LegionRuntime {
             copy->dst_requirements[idx].max_blocking_factor;
         } 
 
-//        printf("target processor for task %s is %i\n",copy->as_mappable_task()->variants->name);
+        printf("target processor for task %s is %i\n",copy->as_mappable_task()->variants->name);
 
       }
       // No profiling on copies yet
@@ -887,6 +907,12 @@ namespace LegionRuntime {
       log_mapper.spew("Rank copy targets for mappable (ID %lld) in "
                             "default mapper for processor " IDFMT "",
                             mappable->get_unique_mappable_id(), local_proc.id);
+
+      printf("Rank copy targets for mappable (ID %lld) in "
+              "default mapper for processor " IDFMT "",
+              mappable->get_unique_mappable_id(), local_proc.id);
+
+      printf("\n");
       if (current_instances.empty())
       {
         // Pick the global memory
@@ -923,6 +949,11 @@ namespace LegionRuntime {
     {
       log_mapper.spew("Select copy source in default mapper for "
                             "processor " IDFMT "", local_proc.id);
+
+      printf("multi-hop copy memories to mem %i from: ",dst_mem.kind());
+    	  for(auto mem : current_instances)
+    		  printf("%i, ",mem.kind());
+      printf("\n");
       // Handle the simple case of having the destination 
       // memory in the set of instances 
       if (current_instances.find(dst_mem) != current_instances.end())
@@ -933,8 +964,11 @@ namespace LegionRuntime {
 
       machine_interface.find_memory_stack(dst_mem, 
                                           chosen_order, true/*latency*/);
+
+
       if (chosen_order.empty())
       {
+
         // This is the multi-hop copy because none 
         // of the memories had an affinity
         // SJT: just send the first one
@@ -1164,7 +1198,8 @@ namespace LegionRuntime {
 
           i_proc = i_proc%targets.size();
           unsigned proc_idx = i_proc;
-          printf("mapping chunk %i to proc %u\n",idx,proc_idx);
+          printf("mapping chunk %i (%i - %i) from domain (%i - %i) to proc %u\n",
+                 idx,chunk.lo[0],chunk.hi[0],rect.lo[0],rect.hi[0],proc_idx);
           slices.push_back(DomainSplit(
                 Domain::from_rect<1>(chunk), targets[proc_idx], false, false));
 

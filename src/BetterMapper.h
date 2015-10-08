@@ -1,25 +1,12 @@
-/* Copyright 2015 Stanford University, NVIDIA Corporation
+/*
+ * Author: Joshua Payne
+ * Adapted from default_mapper.h from the legion runtime.
+ * Copyright (c) 2014-2015 Los Alamos National Security, LLC
+ *                         All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
-
-
-#ifndef __BETTER_MAPPER_H__
-#define __BETTER_MAPPER_H__
-
-#include <default_mapper.h>
-#include <mapping_utilities.h>
-
 
 #include <cstdlib>
 #include <cassert>
@@ -28,17 +15,8 @@
 namespace LegionRuntime {
   namespace HighLevel {
 
-    /**
-     * \class DefaultMapper
-     * The default mapper class is our base implementation of the
-     * mapper interface that relies on some simple heuristics 
-     * to perform most of them calls for general purpose Legion
-     * applications.  You should feel free to extend this class
-     * with your own heuristics by overriding some or all of the
-     * methods.  You can also ignore this implementation entirely
-     * and perform your own implementation of the mapper interface.
-     */
-    class BetterMapper : public DefaultMapper {
+
+    class BetterMapper : public ShimMapper {
     public:
     	BetterMapper(Machine machine, HighLevelRuntime *rt, Processor local);
     	BetterMapper(const BetterMapper &rhs);

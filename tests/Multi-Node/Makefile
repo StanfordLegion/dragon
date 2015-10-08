@@ -1,28 +1,21 @@
-# Copyright 2014 Stanford University
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Copyright (c) 2014-2015 Los Alamos National Security, LLC
+#                         All rights reserved.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This file is part of the Dragon project. See the LICENSE.txt file at the
+# top-level directory of this distribution.
 #
 
-CUDA ?=/usr/local/cuda
+CUDA ?=$(CUDA_INSTALL_PATH)
 ifndef LG_RT_DIR
 $(error LG_RT_DIR variable is not defined, aborting build)
 endif
 DRAGON_DIR=../../src
-
+NO_BUILD_RULES=1
 USE_CUDA=1
 #Flags for directing the runtime makefile what to include
 DEBUG           ?= 1		# Include debugging symbols
-OUTPUT_LEVEL    ?= 2	# Compile time print level
+OUTPUT_LEVEL    ?= 1	# Compile time print level
 SHARED_LOWLEVEL ?= 0		# Use the shared low level
 ALT_MAPPERS     ?= 0		# Compile the alternative mappers
 export DEBUG
@@ -36,14 +29,14 @@ OUTFILE		?= multinode
 GEN_SRC		?= 	multinode.cc #SweepMapper.cc
 				#Partitioners.cc CrossGroupSrc.cc InGroupSource.cc \
 				#Dim3Sweep.cc #dim3_sweep_interface.cc# .cc files
-GEN_GPU_SRC	?=  	# .cu files
+GEN_GPU_SRC	?= IndexAddOp.cu 	# .cu files
 
 # You can modify these variables, some will be appended to by the runtime makefile
 INC_FLAGS	?=   -I$(DRAGON_DIR) #-I/home/payne/Development/FieldKernelOp
 CC_FLAGS	?=    -O3  -g -std=c++11   -DDYNAMIC_TESTS -DDEBUG_HIGH_LEVEL#-DLEGION_PROF   # -DNODE_LOGGING -DORDERED_LOGGING -DDEBUG_HIGH_LEVEL
-NVCC_FLAGS	?=    -O3  -g -std=c++11  -DDYNAMIC_TESTS  -DDEBUG_HIGH_LEVEL#-DLEGION_PROF # -DNODE_LOGGING -DORDERED_LOGGING -DDEBUG_HIGH_LEVEL
+NVCC_FLAGS	?=    -O3  -g -G -std=c++11  -DDYNAMIC_TESTS  -DDEBUG_HIGH_LEVEL#-DLEGION_PROF # -DNODE_LOGGING -DORDERED_LOGGING -DDEBUG_HIGH_LEVEL
 GASNET_FLAGS	?=
-LD_FLAGS	?=  -lboost_system -lboost_program_options 
+LD_FLAGS	?= -L${BOOST_LIBS} -lboost_system -lboost_program_options 
 
 export CC_FLAGS
 export CUDA
@@ -85,7 +78,7 @@ ifndef GCC
 GCC	:= g++
 endif
 ifndef NVCC
-NVCC	:= $(CUDA)/bin/nvcc
+NVCC	:= nvcc
 endif
 SSH	:= ssh
 SCP	:= scp
@@ -116,8 +109,9 @@ $(OUTFILE) : $(ALL_OBJS) $(DRAGON_DIR)/libDragon.a
 ifeq ($(strip $(SHARED_LOWLEVEL)),1)
 	$(GCC) -o $(OUTFILE) $(ALL_OBJS) $(LD_FLAGS) $(GASNET_FLAGS) -L$(DRAGON_DIR) -lDragon
 else
-	$(NVCC) -o $(OUTFILE) $(ALL_OBJS) $(LD_FLAGS) $(GASNET_FLAGS) -L$(DRAGON_DIR) -lDragon
+	$(NVCC) -g -G -o  $(OUTFILE) $(ALL_OBJS) $(LD_FLAGS) $(GASNET_FLAGS) -L$(DRAGON_DIR) -lDragon
 endif
+
 
 
 
