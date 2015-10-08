@@ -8,9 +8,13 @@
  * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 
+#ifndef BETTER_MAPPER_H_
+#define BETTER_MAPPER_H_
+
 #include <cstdlib>
 #include <cassert>
 #include <algorithm>
+#include "shim_mapper.h"
 
 namespace LegionRuntime {
   namespace HighLevel {
@@ -144,7 +148,7 @@ namespace LegionRuntime {
   };
 };
 
-#endif // __DEFAULT_MAPPER_H__
+#endif // BETTER_MAPPER_H_
 
 // EOF
 
