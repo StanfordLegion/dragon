@@ -7,13 +7,12 @@
  * Copyright (c) 2014-2015 Los Alamos National Security, LLC
  *                         All rights reserved.
  *
- * This file is part of the Dragon project. See the LICENSE.txt file at the
- * top-level directory of this distribution.
+ * This file is part of the  LANL Contributions to Legion (C15091) project.
+ * See the LICENSE.txt file at the top-level directory of this distribution.
  */
 
 #include "../src/SingleKernelLauncher.h"
 #include "../src/LegionMatrix.h"
-#include "../src/TaskHelper.h"
 #include "../src/LegionHelper.h"
 #include "../src/LPWrapper.h"
 #include "../src/IndexKernelLauncher.h"
